@@ -114,6 +114,11 @@ impl Screen {
         self.grid_mut().set_scrollback(rows);
     }
 
+    /// Clears all content from the scrollback buffer.
+    pub fn clear_scrollback(&mut self) {
+        self.grid_mut().clear_scrollback();
+    }
+
     /// Returns the current position in the scrollback.
     ///
     /// This position indicates the offset from the top of the screen, and is
@@ -121,6 +126,17 @@ impl Screen {
     #[must_use]
     pub fn scrollback(&self) -> usize {
         self.grid().scrollback()
+    }
+
+    /// Returns an iterator over the scrollback buffer rows.
+    pub fn scrollback_rows(&self) -> impl Iterator<Item = &crate::Row> {
+        self.grid.scrollback_rows()
+    }
+
+    /// Returns the number of rows currently in the scrollback buffer.
+    #[must_use]
+    pub fn scrollback_row_count(&self) -> usize {
+        self.grid.scrollback_row_count()
     }
 
     /// Returns the text contents of the terminal.

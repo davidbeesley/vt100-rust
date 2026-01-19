@@ -199,6 +199,19 @@ impl Grid {
         self.scrollback_offset = rows.min(self.scrollback.len());
     }
 
+    pub fn scrollback_rows(&self) -> impl Iterator<Item = &crate::Row> {
+        self.scrollback.iter()
+    }
+
+    pub fn scrollback_row_count(&self) -> usize {
+        self.scrollback.len()
+    }
+
+    pub fn clear_scrollback(&mut self) {
+        self.scrollback.clear();
+        self.scrollback_offset = 0;
+    }
+
     pub fn write_contents(&self, contents: &mut String) {
         let mut wrapping = false;
         for row in self.visible_rows() {
