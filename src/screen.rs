@@ -129,7 +129,7 @@ impl Screen {
     }
 
     /// Returns an iterator over the scrollback buffer rows.
-    pub fn scrollback_rows(&self) -> impl Iterator<Item = &crate::Row> {
+    pub fn scrollback_rows(&self) -> impl Iterator<Item = &crate::row::Row> {
         self.grid.scrollback_rows()
     }
 
