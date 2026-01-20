@@ -235,23 +235,18 @@ fn scrollback_rows() {
     // Should have 5 rows in scrollback (rows 1-5), screen shows 6-8
     assert_eq!(parser.screen().scrollback_row_count(), 5);
 
-    // Verify scrollback contents via iterator
+    // Verify scrollback contents via iterator (API matches rows())
     let scrollback: Vec<String> = parser
         .screen()
-        .scrollback_rows()
-        .map(|row| {
-            let mut contents = String::new();
-            row.write_contents(&mut contents, 0, 20, false);
-            contents.trim_end().to_string()
-        })
+        .scrollback_rows(0, 20)
+        .map(|s| s.trim_end().to_string())
         .collect();
 
     assert_eq!(scrollback, vec!["1", "2", "3", "4", "5"]);
 
-    // Verify we can access cells in scrollback rows
-    let first_row = parser.screen().scrollback_rows().next().unwrap();
-    let cell = first_row.get(0).unwrap();
-    assert_eq!(cell.contents(), "1");
+    // Verify first row content
+    let first_row = parser.screen().scrollback_rows(0, 20).next().unwrap();
+    assert!(first_row.starts_with("1"));
 }
 
 #[test]
@@ -272,7 +267,7 @@ fn clear_scrollback() {
 
     // Verify scrollback is cleared
     assert_eq!(parser.screen().scrollback_row_count(), 0);
-    assert_eq!(parser.screen().scrollback_rows().count(), 0);
+    assert_eq!(parser.screen().scrollback_rows(0, 20).count(), 0);
 
     // Verify scrollback offset is also reset
     assert_eq!(parser.screen().scrollback(), 0);
