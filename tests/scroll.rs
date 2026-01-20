@@ -198,3 +198,85 @@ fn gen_nums(range: RangeInclusive<u8>, join: &str) -> String {
         .collect::<Vec<String>>()
         .join(join)
 }
+
+#[test]
+fn scrollback_row_count() {
+    // No scrollback buffer configured
+    let mut parser = vt100::Parser::new(3, 20, 0);
+    parser.process(b"1\r\n2\r\n3\r\n4\r\n5");
+    assert_eq!(parser.screen().scrollback_row_count(), 0);
+
+    // Scrollback buffer configured but not yet filled
+    let mut parser = vt100::Parser::new(3, 20, 10);
+    parser.process(b"1\r\n2\r\n3");
+    assert_eq!(parser.screen().scrollback_row_count(), 0);
+
+    // Scrollback buffer partially filled
+    parser.process(b"\r\n4\r\n5");
+    assert_eq!(parser.screen().scrollback_row_count(), 2);
+
+    // Scrollback buffer continues to fill
+    parser.process(b"\r\n6\r\n7\r\n8");
+    assert_eq!(parser.screen().scrollback_row_count(), 5);
+
+    // Scrollback buffer at max capacity
+    let mut parser = vt100::Parser::new(3, 20, 5);
+    parser.process(b"1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\n10");
+    assert_eq!(parser.screen().scrollback_row_count(), 5);
+}
+
+#[test]
+fn scrollback_rows() {
+    let mut parser = vt100::Parser::new(3, 20, 10);
+
+    // Fill scrollback with some rows
+    parser.process(b"1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8");
+
+    // Should have 5 rows in scrollback (rows 1-5), screen shows 6-8
+    assert_eq!(parser.screen().scrollback_row_count(), 5);
+
+    // Verify scrollback contents via iterator
+    let scrollback: Vec<String> = parser
+        .screen()
+        .scrollback_rows()
+        .map(|row| {
+            let mut contents = String::new();
+            row.write_contents(&mut contents, 0, 20, false);
+            contents.trim_end().to_string()
+        })
+        .collect();
+
+    assert_eq!(scrollback, vec!["1", "2", "3", "4", "5"]);
+
+    // Verify we can access cells in scrollback rows
+    let first_row = parser.screen().scrollback_rows().next().unwrap();
+    let cell = first_row.get(0).unwrap();
+    assert_eq!(cell.contents(), "1");
+}
+
+#[test]
+fn clear_scrollback() {
+    let mut parser = vt100::Parser::new(3, 20, 10);
+
+    // Fill scrollback
+    parser.process(b"1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8");
+    assert_eq!(parser.screen().scrollback_row_count(), 5);
+    assert_eq!(parser.screen().scrollback(), 0);
+
+    // Set a scrollback offset
+    parser.screen_mut().set_scrollback(3);
+    assert_eq!(parser.screen().scrollback(), 3);
+
+    // Clear scrollback
+    parser.screen_mut().clear_scrollback();
+
+    // Verify scrollback is cleared
+    assert_eq!(parser.screen().scrollback_row_count(), 0);
+    assert_eq!(parser.screen().scrollback_rows().count(), 0);
+
+    // Verify scrollback offset is also reset
+    assert_eq!(parser.screen().scrollback(), 0);
+
+    // Screen contents should be unaffected
+    assert_eq!(parser.screen().contents(), "6\n7\n8");
+}
