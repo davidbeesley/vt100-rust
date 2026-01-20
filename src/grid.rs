@@ -199,7 +199,7 @@ impl Grid {
         self.scrollback_offset = rows.min(self.scrollback.len());
     }
 
-    pub fn scrollback_rows(&self) -> impl Iterator<Item = &crate::Row> {
+    pub fn scrollback_rows(&self) -> impl Iterator<Item = &crate::row::Row> {
         self.scrollback.iter()
     }
 

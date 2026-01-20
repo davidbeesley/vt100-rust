@@ -128,9 +128,23 @@ impl Screen {
         self.grid().scrollback()
     }
 
-    /// Returns an iterator over the scrollback buffer rows.
-    pub fn scrollback_rows(&self) -> impl Iterator<Item = &crate::Row> {
-        self.grid.scrollback_rows()
+    /// Returns the text contents of the scrollback buffer by row, restricted
+    /// to the given subset of columns.
+    ///
+    /// This will not include any formatting information, and will be in plain
+    /// text format.
+    ///
+    /// Newlines will not be included.
+    pub fn scrollback_rows(
+        &self,
+        start: u16,
+        width: u16,
+    ) -> impl Iterator<Item = String> + '_ {
+        self.grid.scrollback_rows().map(move |row| {
+            let mut contents = String::new();
+            row.write_contents(&mut contents, start, width, false);
+            contents
+        })
     }
 
     /// Returns the number of rows currently in the scrollback buffer.
