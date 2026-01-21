@@ -275,3 +275,51 @@ fn clear_scrollback() {
     // Screen contents should be unaffected
     assert_eq!(parser.screen().contents(), "6\n7\n8");
 }
+
+#[test]
+fn scrollback_rows_formatted() {
+    let mut parser = vt100::Parser::new(3, 20, 10);
+
+    // Write colored text that will scroll into scrollback
+    // \x1b[31m = red foreground, \x1b[32m = green foreground
+    parser.process(b"\x1b[31mred\r\n\x1b[32mgreen\r\n\x1b[33myellow\r\n\x1b[34mblue\r\n\x1b[35mmagenta");
+
+    // Should have 2 rows in scrollback (red, green), screen shows yellow-magenta
+    assert_eq!(parser.screen().scrollback_row_count(), 2);
+
+    // Verify plain scrollback_rows strips formatting
+    let plain: Vec<String> = parser
+        .screen()
+        .scrollback_rows(0, 20)
+        .map(|s| s.trim_end().to_string())
+        .collect();
+    assert_eq!(plain, vec!["red", "green"]);
+
+    // Verify scrollback_rows_formatted preserves escape codes
+    let formatted: Vec<Vec<u8>> =
+        parser.screen().scrollback_rows_formatted(0, 20).collect();
+
+    assert_eq!(formatted.len(), 2);
+
+    // First row should contain red escape code (\x1b[31m)
+    let first_row = &formatted[0];
+    assert!(
+        first_row.windows(5).any(|w| w == b"\x1b[31m"),
+        "First row should contain red color code"
+    );
+    assert!(
+        String::from_utf8_lossy(first_row).contains("red"),
+        "First row should contain 'red' text"
+    );
+
+    // Second row should contain green escape code (\x1b[32m)
+    let second_row = &formatted[1];
+    assert!(
+        second_row.windows(5).any(|w| w == b"\x1b[32m"),
+        "Second row should contain green color code"
+    );
+    assert!(
+        String::from_utf8_lossy(second_row).contains("green"),
+        "Second row should contain 'green' text"
+    );
+}

@@ -6,6 +6,8 @@
 
 * `Screen::scrollback_rows` to iterate over scrollback buffer contents by row,
   matching the API of `Screen::rows`.
+* `Screen::scrollback_rows_formatted` to iterate over scrollback buffer contents
+  by row with formatting escape codes, matching the API of `Screen::rows_formatted`.
 * `Screen::scrollback_row_count` to get the number of rows currently stored in
   the scrollback buffer.
 * `Screen::clear_scrollback` to clear all content from the scrollback buffer.

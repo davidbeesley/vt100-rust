@@ -114,7 +114,8 @@ impl Screen {
         self.grid_mut().set_scrollback(rows);
     }
 
-    /// Clears all content from the scrollback buffer.
+    /// Clears all content from the scrollback buffer and resets the
+    /// scrollback offset to `0`.
     pub fn clear_scrollback(&mut self) {
         self.grid_mut().clear_scrollback();
     }
@@ -145,6 +146,48 @@ impl Screen {
             row.write_contents(&mut contents, start, width, false);
             contents
         })
+    }
+
+    /// Returns the formatted contents of the scrollback buffer by row,
+    /// restricted to the given subset of columns.
+    ///
+    /// Formatting information will be included inline as terminal escape
+    /// codes. The result will be suitable for feeding directly to a raw
+    /// terminal parser, and will result in the same visual output.
+    ///
+    /// You are responsible for positioning the cursor before printing each
+    /// row, and the final cursor position after displaying each row is
+    /// unspecified.
+    // the unwraps in this method shouldn't be reachable
+    #[allow(clippy::missing_panics_doc)]
+    pub fn scrollback_rows_formatted(
+        &self,
+        start: u16,
+        width: u16,
+    ) -> impl Iterator<Item = Vec<u8>> + '_ {
+        let mut wrapping = false;
+        self.grid
+            .scrollback_rows()
+            .enumerate()
+            .map(move |(i, row)| {
+                // number of rows in a grid is stored in a u16 (see Size), so
+                // scrollback can never return enough rows to overflow here
+                let i = i.try_into().unwrap();
+                let mut contents = vec![];
+                row.write_contents_formatted(
+                    &mut contents,
+                    start,
+                    width,
+                    i,
+                    wrapping,
+                    None,
+                    None,
+                );
+                if start == 0 && width == self.grid.size().cols {
+                    wrapping = row.wrapped();
+                }
+                contents
+            })
     }
 
     /// Returns the number of rows currently in the scrollback buffer.
